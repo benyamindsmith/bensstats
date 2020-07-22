@@ -1,0 +1,212 @@
+---
+title: "RvsPython #2: Pivoting Data From Long to Wide Form"
+author: "Benjamin Smith"
+date: "7/20/2020"
+output: html_document
+---
+
+
+```{r setup, cache = F,echo=FALSE}
+knitr::opts_chunk$set(
+	error = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+__Note: This is an older post originally written as a [LinkedIn article](https://www.linkedin.com/pulse/r-vs-python-pivoting-data-from-long-wide-form-benjamin-smith/) I wrote in late May. I have added information about shaping data thanks to [Casper Crause](https://www.linkedin.com/in/casper-crause/) using the `data.table` library. You can see our original correspondence in the comments there (for now)__
+
+If you dabble in data, you know one of the challenges that everyone has when working with data is reshaping data to the form you want to use it; thankfully, there are ways to shape data in both Python and R to speed up the process by using some of the functions available in their extensive libraries.
+
+In this post, we will be looking at how to pivot data from long to wide form using Python's `pandas` library and R's `stats`, `tidyr` and `data.table` libraries and how they match up. 
+
+I did write more annotations on the Python code as I am still learning about the language and while its been pretty easy to pick up, I still need to work through the steps. I'm sure there's another way to wrangle and shape data in Python besides for `pandas`; If you know of another one, be sure to leave a comment below and let me know! 
+
+Lets go!
+
+# The Problem
+
+The problem that we'll be using will be a problem I saw on [StackExchange's Data Science site](https://datascience.stackexchange.com/). (link to problem: [here](https://datascience.stackexchange.com/questions/47175/r-combine-multiple-rows-of-dataframe-by-creating-new-columns-and-union-values/48623#48623)). Here are the screenshots of the question.
+
+
+![](C:/Users/Smith/Desktop/ScreenGrab 1.png)
+![](C:/Users/Smith/Desktop/ScreenGrab 2.png)
+
+While the OP only asks for how to do this in R. I thought this would be good to show how this works in Python as well! Lets dive right into it!
+
+# The Answer(s).
+
+### TL;DR: To do the above transformation, Using Python's pandas library is not as efficient as R's `stats`, `tidyr` or `data.table` libraries.
+
+__Disclaimer: for this problem, I will be focusing on getting the data to its proper form. I won't rename columns as it is a cosmetic issue.__
+
+
+## Python (`Pandas` library): 
+
+First lets input our data:
+
+```{python}
+
+# The Raw Data
+
+
+x = {"ID":[1234,1234],
+  "APPROVAL_STEP":["STEP_A","STEP_B"],
+  "APPROVAL_STATUS":["APPROVED","APPROVED"],
+  "APPROVAL_DATE":["23-Jan-2019","21-Jan-2019"],
+  "APPROVER":["John Smith","Jane Doe"]}
+
+  
+print(x)
+
+```
+
+
+Now to convert this data into a data frame by using the `DataFrame()` function from the `pandas` library.
+
+```{python include=FALSE}
+
+import pandas as pd
+
+pd.set_option('display.max_columns', None)
+
+
+```
+
+```{python}
+
+import pandas as pd
+
+
+df=pd.DataFrame(x)
+
+
+df
+
+```
+
+
+Now, to convert the data into wide form; this can be done by using the `.pivot_table()` method. We want to index the data based on `ID` and see each data point based on the step. This can be done with the code below:
+
+```{python}
+
+df=df.pivot_table(index="ID",
+         columns="APPROVAL_STEP",
+         aggfunc="first")
+
+
+df
+
+```
+
+We're starting to have our data look like what we want it to be . Now, to categorize the columns.
+
+
+``` {python}
+
+df.columns = ['_'.join(col) for col in df.columns]
+
+df
+
+```
+
+Now, for the finishing touches, we use the `.reset_index()` method and reorder the columns.
+
+
+```{python, echo=F, warning=F, message=F}
+
+df.reset_index()
+
+
+#Reorder Columns
+df=df[["ID","APPROVAL_DATE_STEP_A","APPROVAL_STATUS_STEP_A","APPROVER_STEP_A",
+       "APPROVAL_DATE_STEP_B","APPROVAL_STATUS_STEP_B","APPROVER_STEP_B"]]
+       
+df
+
+```
+
+
+Phew! That was alot of steps to follow to get here! Lets see how R matches up!
+
+
+## R (`tidyr` package)
+
+
+The [`tidyr` library](https://tidyr.tidyverse.org/) is a package made by Hadley Wickam and his team at RStudio. It is one of the many packages in the [tidyverse](https://www.tidyverse.org/) made for managing data. We can solve this problem by using the `pivot_wider()` function.
+```{r message=FALSE}
+# The Raw Data
+
+x<-data.frame(ID=c(1234,1234),
+              APPROVAL_STEP=c("STEP_A","STEP_B"),
+              APPROVAL_STATUS=c("APPROVED","APPROVED"),
+              APPROVAL_DATE=c("23-Jan-2019","21-Jan-2019"),
+              APPROVER=c("John Smith","Jane Doe"))
+
+# Use pivot_wider()
+
+library(tidyr)
+
+t<-x %>% pivot_wider(id_cols=ID,
+                  names_from=APPROVAL_STEP,
+                  values_from =c(APPROVAL_STATUS,APPROVAL_DATE,APPROVER)) 
+
+t
+```
+
+Now, we just need to reorder the columns.
+
+```{r}
+# Reordered
+t<-t[,c(1,2,4,6,3,5,7)]
+
+t
+
+```
+
+## R (`stats` package)
+
+Using the `reshape()` function from R's stats package is a more "old school" way of doing this because it's something more popular with people who have learned how to write R pre-tidyverse era. Being that I've initially learned R from people who programmed pre-tidyverse, I learned how to do this. This can all be done with one function without having to reorder columns!
+
+(This can also be seen on [my answer](https://datascience.stackexchange.com/questions/47175/r-combine-multiple-rows-of-dataframe-by-creating-new-columns-and-union-values/48623#48623) to this question on Data Science StackExchange page)
+
+```{r}
+
+library(stats)
+
+reshape(x, 
+    timevar="APPROVAL_STEP",
+    idvar="ID",
+    sep="_", direction = "wide")
+
+```
+__There you have it! Everything with one function!__
+
+## R (`data.table` package)
+
+[Casper Crause](https://www.linkedin.com/in/casper-crause/?lipi=urn%3Ali%3Apage%3Ad_flagship3_pulse_read%3BpxmA2OAGTxCug222LQB3lA%3D%3D&licu=urn%3Ali%3Acontrol%3Ad_flagship3_pulse_read-comment_actor_description) pointed out that this task can also be done with the `data.table` package. 
+
+The advantage of using this over `tidyr` or the `stats` packages is that [data.table is written largely in C](https://github.com/Rdatatable/data.table) (see breakdown in languages used on Github page linked). So for larger datasets, using this in a script will save more time computationally.
+
+The quirk here is that your data frame needs to be converted to a data table (which for this example was not hard at all). But throwing this into `dcast()` works like a charm and puts your shaping of data in "mathematical" terms where the ID variables (rows) are placed on the left hand side and your measuring variables are placed on the right hand side.
+
+
+Thank you Casper for pointing this out!
+
+```{r}
+library(data.table)
+x <-as.data.table(x)
+dcast(
+  data       = x, 
+  formula  = ID~...,
+  value.var = c("APPROVAL_STATUS", "APPROVAL_DATE","APPROVER")
+  ) 
+
+```
+
+
+# Conclusion
+
+While there are ways to pivot data from long to wide form in both Python and R, using R makes for a less labor intensive and intuitive time for shaping data as opposed to Python. I am learning that both languages have their strengths, but for this data-wrangling challenge R saves time working through those sort of details.
+
+If you write in R or Python and have an alternative/better solution to answering this problem (or see a mistake) please feel free to reach out to me in a comment or message to share it with me!

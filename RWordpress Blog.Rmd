@@ -1,0 +1,94 @@
+---
+title: 'RObservations \#1\: Uploading your .Rmd File to Wordpress. A TroubleShooters
+  Guide'
+author: "Benjamin Smith"
+output: html_document
+---
+
+As anyone in tech will tell you. Having a website where you can showcase your work is a huge plus for getting an edge on the market, networking and building a portfolio. When starting out, this sort of stuff might seem overwhelming. If you're an R user and have done work with RMarkdown, the easiest thing to do is to migrate your .Rmd files to your blog. 
+
+While there are many blog posts about importing your R files into wordpress. This blog is to show you how you can do it on your own and troubleshoot some problems that are along the way. I'm sure the number of problems are endless, but this blog post is a presentation of the problems I experienced when I first uploaded a .Rmd file on my Wordpress. Lets start from the beginning shall we?
+
+# What the internet might have already told you
+
+What you might have heard, to upload your .Rmd file on Wordpress first install your preliminary packages (if you haven't done so already):
+
+```
+  install.packages("knitr")
+  install.packages("devtools")
+  devtools::install_github(c("duncantl/XMLRPC", "duncantl/RWordPress"))
+
+
+```
+
+Then call the `knitr` and `RWordPress` libraries and set your options to make sure you're logged in; This snippit of code can be found probably on every blog which discusses the topic:
+
+
+(__WARNING: This code might give mistakes so keep reading for the solution!__)
+```
+library(RWordPress)
+library(knitr)
+
+# Set options
+
+options(WordPressLogin = c(user = 'password'),
+        WordPressURL = 'https://yoursite.wordpress.com/xmlrpc.php')
+```
+
+Where `user` is your username (not as a string) and `'password'` is your password.
+
+Finally, make sure your working directory is the same as where your .Rmd file is and call the `knitr2wp` function to upload your file to Wordpress
+
+```
+setwd("C:/Users/user/Documents")
+
+knit2wp('Your_RMarkdown_file.Rmd', title = 'Hey kid's! Look at how I posted this on Wordpress',publish = FALSE)
+```
+
+# This should work dandy right???? 
+
+![](https://media1.tenor.com/images/14d2b4e4813a0d3a3a2b349a89a7f3dd/tenor.gif?itemid=12689891)
+
+
+#Lets pick apart the issues that I've had!!
+
+
+# 1) R is not allowed through your firewall (Error 443):
+
+You might get an error that looks like this:
+
+```
+Error in function (type, msg, asError = TRUE)  : 
+  Unknown SSL protocol error in connection to https://yoursite.wordpress.com/xmlrpc.php:443
+```
+
+After doing some googling I found out that this error is because R is unable to pass your Firewall. So if you're a Windows user click your way through the following steps. 
+
+`(Start > Control panel > System and security > Windows Defender firewall > Applications and Functions)`
+
+If it has not checked the box of "Rstudio R Session", check it and retry. This will usually work then.
+
+(Thank you `Marina_Anna` for her post on the RStudio forum to answer this question (![here](https://community.rstudio.com/t/publishing-unknown-ssl-protocol-error-in-connection-to-api-shinyapps-io-443/45910)))
+
+
+# 2) Your Options are not set properly (Wordpress is Mispelled)
+
+This is a really annoying issue, which is that WordPress needs to be written as `Wordpress` (with a lowercase `p`)in the options to be understood by `knitr2wp` so...
+
+# The proper way to set your options is...
+
+
+```
+options(WordpressLogin = c(user = 'password'),
+        WordpressURL = 'https://yoursite.wordpress.com/xmlrpc.php')
+        
+
+# Then post your .Rmd file to your WordPress site. 
+
+
+knit2wp('Your_RMarkdown_file.Rmd', title = 'Hey kid's! Look at how I posted this on Wordpress',publish = FALSE)
+```
+
+... and it should work!
+
+Hope this helps!
