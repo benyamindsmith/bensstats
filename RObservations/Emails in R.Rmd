@@ -1,0 +1,138 @@
+---
+title: 'RObservations #2: Mail Merging (Email Blasting) with R'
+author: "Benjamin Smith"
+output: html_document
+---
+
+Alot of individuals think that to use R or a programming language at work you need to be a software engineer, data analyst, data scientist etc. This can be discouraging to some who don't work in this discipline and want to break into this field, but presently work an administrative or sales role that does not require or need such skills. 
+
+But there are a variety of admistrative tasks that implimenting R can prove useful- even at the entry level. What if I told you that you can automate prospecting emails and mail merges with R? This is of particular importance if you are looking to prospect new clients, run a campaign for your organization or network with other businesses and move past introductions and save time.
+
+This blog post is based on personal experience of what I have used for businesses to automate the prospecting process and have successfully avoided their spam folder to my knowledge (i.e. all prospects I reached out to got back to me).
+
+__NOTE: There are posts out there for avoiding getting your email blocked (see [here](https://www.saleshandy.com/blog/how-send-cold-emails/)). But in this post we are going to look at how to Automate Mail merges ( or Email Blasts)__
+
+# The problem:
+
+To keep things simple, suppose I have gathered a list of leads with names and emails which for emailing purposes is enough data to make a simple mail merge (or email blast). 
+
+(_Of course, for our case- this data is made up_)
+
+```{r}
+buisness_owners <- data.frame(Name=c("Aaron","Susan","Tim"),
+                              Email=c("aaron_gillman@aaronsties.com", "sue@suesflowers.ca","tim@buckto.org"))
+
+buisness_owners
+
+```
+
+
+# Using the `emayili` package
+
+[Andrew Collier](https://github.com/datawookie) authored the `emayili` package and is in my opinion the easiest package to use for sending emails in R. Check out the Github for the package [here](https://github.com/datawookie/emayili) where he breaks down the specifics of using the package and how each piece works.
+
+
+## Step 1: Installing the package
+
+[`emayili` is now on `CRAN`](https://CRAN.R-project.org/package=emayili) so you can install it directly from there. 
+
+If you want to get the development version, you can download it using `devtools::install_github()`
+
+```
+
+# Option 1: Download the `emayili` package from CRAN
+
+install.packages("emayili")
+
+# Option 2: Download the emayili package from Github with the `devtools` package 
+
+install.packages("devtools")
+
+devtools::install_github("datawookie/emayili")
+
+# Or to get the package from the development branch
+
+
+devtools::install_github("datawookie/emayili",ref="dev")
+```
+
+
+## Step 2: writing your email
+
+Because there are many customizable options for writing an email with `emayili`, I have put together a function called `write_email()` which contains the arguments which I wanted. You could just pipe (`%>%`) everything together and not have a function, but for our script - having a pre-built function makes things easier IMHO. 
+
+There are definitely better ways to do this, but here is what worked for me!
+
+### The function: 
+
+```
+library(emayili)
+
+write_email<-function(sender,
+                      reciever,
+                      reciever_name,
+                      subject_line,
+                      opening_line= "Dear",
+                      body_text){
+  
+  all_text<-paste(opening_line,reciever_name,",","\n",body_text)
+  
+  #Using emayili
+  
+  envelope()%>%
+    from(sender)%>%
+    to(reciever)%>%
+    subject(subject_line)%>%
+    text(content =all_text)
+  
+}
+```
+
+
+The first four arguments are self explanitory. The `opening_line` argument I have set as default as `"Dear"` which is essentially a introduction line that you can have to address your recipient. You can change it to `"Hello"` or whatever you like.
+
+The `body_text` argument is the standard text you would like to include. This is all put together into the `all_text` variable embedded in the function and passed into the the `text()` function which was chained to the rest of the `emayili` functions.
+
+### Using `mapply()` to implement the merge:
+
+```
+mapply(function(email,name){
+  email<-write_email(sender="myemail@hotmail.com",
+                     reciever=email,
+                     reciever_name = name,
+                     subject_line='Personal from R',
+                     body_text=
+                       "\nThanks for letting me spam your email with my robot \n\nBest,\n\nBenjamin")
+  
+  # Instalize STMP server
+  smtp <- server(host = "smtp.live.com",
+                 port = 587,
+                 username = "myemail@hotmail.com",
+                 password = '********')
+  
+  smtp(email, verbose = TRUE)
+  
+  # Added System Sleep to Not slam the server with requests and to 
+  # avoid an ip-ban.
+  
+  Sys.Sleep(runif(1, max=5))
+},res,nams)
+
+```
+
+To send the email we need to instalize a STMP server. Based on the host you will be using your port will vary. Some quick googling can help you figure out your appropriate host and port (or you can just check [here](https://www.arclab.com/en/kb/email/list-of-smtp-and-pop3-servers-mailserver-list.html)).
+
+After running this script your blast _should be_ sucessful!
+
+![There you have it!](C:\Users\Smith\Desktop\Email Snippet.PNG)
+
+# Conclusion
+
+Breaking into tech can be tough. Just because you are not in tech doesn't mean you can't use a programming language like R to help with your work- even if you work in sales or admin.
+
+I hope this blog opens your mind to using R beyond statistical analysis.
+
+Let me know what you think!
+
+
+
