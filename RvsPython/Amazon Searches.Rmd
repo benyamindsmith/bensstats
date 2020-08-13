@@ -1,0 +1,85 @@
+---
+title: "RvsPython #3: A Basic Search on Amazon.ca using R and Python"
+author: "Benjamin Smith"
+date: "8/12/2020"
+output: html_document
+---
+
+```{r include=FALSE}
+options(digits=17)
+```
+
+
+This post was inspired by one of [Thomas Neitman's](https://www.linkedin.com/in/thomasneitmann/) posts showing how to write some debugging code in R and Python to [automatically search code errors on StackOverflow](https://www.linkedin.com/feed/update/urn:li:activity:6698516164340920320/). This is a simpiler example where we do this with Amazon.ca.
+
+In this blog we are going to write code which is as similar as possible in R and Python to search for what we want to find on [Amazon.ca](https://www.amazon.ca/). In our example we are going to look for coffee machines. 
+
+# The Code:
+
+This is a breakdown of the code, we are going to time the code being ran from once the necessary libraries are loaded in (for Python). We are going to define a start time as our system time before running the code
+
+`Insert Picture Here!`
+
+
+#Running the Code
+
+## R Code
+```
+start_time<-Sys.time()
+
+search_amazon_basic<- function(what){
+  browseURL(paste0("https://www.amazon.ca/s?k=",what))
+}
+
+search_amazon_basic("Coffee Machine")
+print(paste("--",Sys.time()-start_time,"seconds --"))
+
+
+```
+### Output:
+
+```
+[1] "-- 0.0299808979034424 seconds --"
+```
+
+## Python Code
+
+```
+import webbrowser
+import time
+start_time=time.time()
+
+def search_amazon_basic(what):
+    webbrowser.open_new(f"https://www.amazon.ca/s?k={what}")
+
+search_amazon_basic("Coffee Machine")
+print("--- %s seconds ---" % (time.time() - start_time))
+```
+
+### Output:
+```
+--- 0.10091876983642578 seconds ---
+```
+
+Huh! Well, will you look at that! R was a little more than 3 times faster than Python. My best guess for this time gap is because python needs to reference its imported libraries before executing the required operation as opposed to R which has it built in the Base package.
+
+# Conclusion
+
+This just a very small example comparing R to Python. It seems like both were able to do the same task with relative ease. Python needed to have the `webbrowser` module imported for its code whereas R did not require any libraries *even* for timing the operation. Where as python required the `time` module for that. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+df <- data.frame(Language=c("Python","R"),"Time (secs)"=c(0.10091876983642578,0.0299808979034424))
+
+library(ggplot2)
+library(ggthemes)
+
+ggplot(df,aes(x=Language,y=Time..secs.))+
+  geom_bar(stat="identity",fill=c('#FFD43B','#306998'))+
+  ylab('Time (Seconds)')+
+  ggtitle("R vs Python: Accessing Amazon.ca speeds")+
+  theme_clean()
+```
+
+Once again. Thank you Thomas Neitman for giving me this inspiration! If you like this, please be sure to check out Thomas out on [LinkedIn](https://www.linkedin.com/in/thomasneitmann/) and his [blog on R Progamming](https://thomasadventure.blog/)
+
